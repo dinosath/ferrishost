@@ -1,0 +1,21 @@
+[package]
+name = "ferrishost-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "ferrishost"
+path = "src/main.rs"
+
+[dependencies]
+ferrishost-core = { path = "../ferrishost-core" }
+clap = { version = "4.4", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+thiserror = "1.0"
+libc = "0.2"

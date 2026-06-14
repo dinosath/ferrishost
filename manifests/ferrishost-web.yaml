@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ferrishost-web
+  namespace: ferrishost
+spec:
+  selector:
+    app: ferrishost-web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ferrishost-web
+  namespace: ferrishost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ferrishost-web
+  template:
+    metadata:
+      labels:
+        app: ferrishost-web
+    spec:
+      serviceAccountName: ferrishost-web
+      containers:
+        - name: ferrishost-web
+          image: ghcr.io/ferrishost/ferrishost-web:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/status
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ferrishost-web
+  namespace: ferrishost
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ferrishost-web
+                port:
+                  number: 80
