@@ -7,11 +7,15 @@ members = [
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/ferrishost/ferrishost"
+repository = "https://github.com/dinosath/ferrishost"
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
+
+[profile.dist]
+inherits = "release"
+lto = "thin"

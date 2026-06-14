@@ -1,5 +1,5 @@
 use super::GpuVendor;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use ferrishost_core::GpuInfo;
 use std::fs;
 use std::path::Path;
@@ -62,7 +62,7 @@ impl GpuVendor for AmdGpu {
         // Ensure amdgpu kernel module is loaded
         // Check for /dev/dri accessibility
         tracing::info!("Checking AMD GPU host configuration...");
-        
+
         // Verify /dev/kfd exists
         if !Path::new("/dev/kfd").exists() {
             return Err(anyhow!("/dev/kfd not found"));
@@ -83,7 +83,7 @@ impl GpuVendor for AmdGpu {
     }
 
     fn cluster_manifests(&self) -> &'static str {
-        include_str!("../../manifests/amd-device-plugin.yaml")
+        include_str!("../../../manifests/amd-device-plugin.yaml")
     }
 
     fn resource_name(&self) -> &'static str {

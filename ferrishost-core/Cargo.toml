@@ -3,6 +3,10 @@ name = "ferrishost-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
+
+[package.metadata.dist]
+dist = false
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

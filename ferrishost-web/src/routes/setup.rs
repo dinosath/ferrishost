@@ -12,9 +12,7 @@ pub async fn get_setup_state() -> Json<SetupState> {
     })
 }
 
-pub async fn update_setup_state(
-    Json(state): Json<SetupState>,
-) -> Json<SetupState> {
+pub async fn update_setup_state(Json(state): Json<SetupState>) -> Json<SetupState> {
     tracing::info!("Updating setup state: {:?}", state);
     Json(state)
 }

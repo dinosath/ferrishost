@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use ferrishost_core::HostInfo;
 use std::process::Command;
 
@@ -27,36 +27,38 @@ impl SystemInfo {
     pub fn validate(&self) -> Result<()> {
         // Verify it's Linux
         if self.os != "Linux" {
-            return Err(anyhow!("FerrisHost only supports Linux (detected: {})", self.os));
+            return Err(anyhow!(
+                "FerrisHost only supports Linux (detected: {})",
+                self.os
+            ));
         }
 
         // Verify supported architecture
         match self.arch.as_str() {
-            "x86_64" | "aarch64" => {},
-            arch => return Err(anyhow!("Unsupported architecture: {} (only x86_64/aarch64 supported)", arch)),
+            "x86_64" | "aarch64" => {}
+            arch => {
+                return Err(anyhow!(
+                    "Unsupported architecture: {} (only x86_64/aarch64 supported)",
+                    arch
+                ));
+            }
         }
 
         Ok(())
     }
 
     fn detect_os() -> Result<String> {
-        let output = Command::new("uname")
-            .arg("-s")
-            .output()?;
+        let output = Command::new("uname").arg("-s").output()?;
         Ok(String::from_utf8(output.stdout)?.trim().to_string())
     }
 
     fn detect_kernel_version() -> Result<String> {
-        let output = Command::new("uname")
-            .arg("-r")
-            .output()?;
+        let output = Command::new("uname").arg("-r").output()?;
         Ok(String::from_utf8(output.stdout)?.trim().to_string())
     }
 
     fn detect_arch() -> Result<String> {
-        let output = Command::new("uname")
-            .arg("-m")
-            .output()?;
+        let output = Command::new("uname").arg("-m").output()?;
         let arch = String::from_utf8(output.stdout)?.trim().to_string();
         // Normalize to standard names
         Ok(match arch.as_str() {
@@ -67,8 +69,7 @@ impl SystemInfo {
     }
 
     fn detect_hostname() -> Result<String> {
-        let output = Command::new("hostname")
-            .output()?;
+        let output = Command::new("hostname").output()?;
         Ok(String::from_utf8(output.stdout)?.trim().to_string())
     }
 

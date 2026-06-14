@@ -1,5 +1,5 @@
 use super::GpuVendor;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use ferrishost_core::GpuInfo;
 use std::process::Command;
 
@@ -56,9 +56,7 @@ impl GpuVendor for NvidiaGpu {
 
     fn prepare_host(&self) -> Result<()> {
         // Check if nvidia-container-toolkit is installed
-        let output = Command::new("which")
-            .arg("nvidia-ctk")
-            .output()?;
+        let output = Command::new("which").arg("nvidia-ctk").output()?;
 
         if !output.status.success() {
             tracing::info!("Installing NVIDIA Container Toolkit...");
@@ -84,7 +82,7 @@ impl GpuVendor for NvidiaGpu {
     }
 
     fn cluster_manifests(&self) -> &'static str {
-        include_str!("../../manifests/nvidia-device-plugin.yaml")
+        include_str!("../../../manifests/nvidia-device-plugin.yaml")
     }
 
     fn resource_name(&self) -> &'static str {

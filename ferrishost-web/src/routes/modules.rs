@@ -24,16 +24,12 @@ pub async fn list_modules() -> Json<Vec<ModuleDescriptor>> {
     Json(modules)
 }
 
-pub async fn install_module(
-    Path(id): Path<String>,
-) -> Json<serde_json::Value> {
+pub async fn install_module(Path(id): Path<String>) -> Json<serde_json::Value> {
     tracing::info!("Installing module: {}", id);
     Json(serde_json::json!({ "status": "installing", "module": id }))
 }
 
-pub async fn uninstall_module(
-    Path(id): Path<String>,
-) -> Json<serde_json::Value> {
+pub async fn uninstall_module(Path(id): Path<String>) -> Json<serde_json::Value> {
     tracing::info!("Uninstalling module: {}", id);
     Json(serde_json::json!({ "status": "uninstalling", "module": id }))
 }

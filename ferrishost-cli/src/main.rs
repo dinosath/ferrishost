@@ -1,13 +1,13 @@
 use clap::{Parser, Subcommand};
-use ferrishost_core::{HostInfo, GpuStatus, ClusterStatus};
+use ferrishost_core::{ClusterStatus, GpuStatus, HostInfo};
 use std::path::PathBuf;
 use tracing_subscriber;
 
-mod system;
+mod deploy_web;
 mod gpu;
 mod k3s;
 mod operators;
-mod deploy_web;
+mod system;
 
 use system::SystemInfo;
 
@@ -113,7 +113,15 @@ async fn main() -> anyhow::Result<()> {
             no_browser,
             offline,
         } => {
-            setup(skip_gpu, gpu_vendor, disable_traefik, web_port, no_browser, offline).await?;
+            setup(
+                skip_gpu,
+                gpu_vendor,
+                disable_traefik,
+                web_port,
+                no_browser,
+                offline,
+            )
+            .await?;
         }
         Command::Status => {
             status().await?;

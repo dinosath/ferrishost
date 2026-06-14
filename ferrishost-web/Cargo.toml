@@ -3,6 +3,11 @@ name = "ferrishost-web"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+publish = false
+
+[package.metadata.dist]
+dist = false
 
 [dependencies]
 ferrishost-core = { path = "../ferrishost-core" }
@@ -15,3 +20,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = "1.0"
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+[dev-dependencies]
+http-body-util = "0.1"
+tower = { version = "0.4", features = ["util"] }

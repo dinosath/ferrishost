@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// Information about a detected GPU
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GpuInfo {
-    pub vendor: String,        // "nvidia" or "amd"
+    pub vendor: String, // "nvidia" or "amd"
     pub name: String,
     pub memory_mb: u64,
     pub index: u32,
@@ -20,9 +20,9 @@ pub struct GpuStatus {
 /// Host OS and architecture information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HostInfo {
-    pub os: String,            // "Linux"
+    pub os: String, // "Linux"
     pub kernel_version: String,
-    pub arch: String,          // "x86_64" or "aarch64"
+    pub arch: String, // "x86_64" or "aarch64"
     pub hostname: String,
 }
 
@@ -50,7 +50,7 @@ pub struct ModuleDescriptor {
     pub id: String,
     pub name: String,
     pub description: String,
-    pub category: String,       // "storage", "auth", "vpn", "app", etc.
+    pub category: String, // "storage", "auth", "vpn", "app", etc.
     pub version: String,
     pub installed: bool,
 }

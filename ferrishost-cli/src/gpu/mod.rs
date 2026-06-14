@@ -1,5 +1,5 @@
-pub mod nvidia;
 pub mod amd;
+pub mod nvidia;
 
 use anyhow::Result;
 use ferrishost_core::GpuInfo;

@@ -12,23 +12,22 @@ FerrisHost is a lightweight, open-source personal cloud bootstrapper for self-ho
 
 ## Quick Start
 
-### One-line Installer
+### Shell Installer
 
 ```bash
-curl -fsSL https://ferrishost.sh | bash -
-```
-
-### From Cargo
-
-```bash
-cargo install ferrishost-cli
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/dinosath/ferrishost/releases/latest/download/ferrishost-installer.sh \
+  | sh
 sudo ferrishost setup
 ```
+
+> The installer places `ferrishost` in `~/.cargo/bin/`. If that directory
+> is not yet on your `PATH`, use `sudo ~/.cargo/bin/ferrishost setup`.
 
 ### From Source
 
 ```bash
-git clone https://github.com/ferrishost/ferrishost
+git clone https://github.com/dinosath/ferrishost
 cd ferrishost
 cargo build --release -p ferrishost-cli
 sudo ./target/release/ferrishost setup
@@ -171,12 +170,7 @@ Licensed under either of:
 
 at your option.
 
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
 ## See Also
 
-- [FerrisHost Specification](ferrishost-spec.md) — Detailed design document
 - [Olares](https://github.com/beclab/olares) — Inspiration and reference
 - [k3s](https://k3s.io/) — Lightweight Kubernetes

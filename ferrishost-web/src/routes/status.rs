@@ -1,7 +1,7 @@
-use axum::Json;
-use ferrishost_core::{GpuStatus, HostInfo, ClusterStatus, GpuInfo, NodeStatus};
-use std::sync::Arc;
 use crate::state::AppState;
+use axum::Json;
+use ferrishost_core::{ClusterStatus, GpuInfo, GpuStatus, HostInfo, NodeStatus};
+use std::sync::Arc;
 
 pub async fn get_status() -> Json<ClusterStatus> {
     Json(ClusterStatus {

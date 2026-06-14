@@ -1,3 +1,3 @@
-pub mod status;
-pub mod setup;
 pub mod modules;
+pub mod setup;
+pub mod status;
