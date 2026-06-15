@@ -1,0 +1,3 @@
+NOT A VALID CSV LINE
+name, memory, bogus_column
+, only a name

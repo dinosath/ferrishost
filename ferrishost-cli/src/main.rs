@@ -1,14 +1,10 @@
+use anyhow::Context;
 use clap::{Parser, Subcommand};
-use ferrishost_core::{ClusterStatus, GpuStatus, HostInfo};
-use std::path::PathBuf;
+use std::io::Write;
+use std::path::Path;
 use tracing_subscriber;
 
-mod deploy_web;
-mod gpu;
-mod k3s;
-mod operators;
-mod system;
-
+use ferrishost_cli::{deploy_web, gpu, k3s, operators, system};
 use system::SystemInfo;
 
 #[derive(Parser)]
@@ -88,12 +84,6 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(filter_level)
         .init();
 
-    // Verify root
-    if unsafe { libc::geteuid() } != 0 {
-        eprintln!("This command must be run as root");
-        std::process::exit(1);
-    }
-
     // Route to the appropriate command
     let command = cli.command.unwrap_or(Command::Setup {
         skip_gpu: false,
@@ -144,37 +134,131 @@ async fn setup(
     skip_gpu: bool,
     gpu_vendor: Option<String>,
     disable_traefik: bool,
-    web_port: u16,
-    no_browser: bool,
+    _web_port: u16,
+    _no_browser: bool,
     offline: bool,
 ) -> anyhow::Result<()> {
     tracing::info!("Starting FerrisHost setup...");
 
+    // ------------------------------------------------------------------
     // Step 1: Preflight checks
-    tracing::info!("Running preflight checks...");
+    // ------------------------------------------------------------------
+    tracing::info!("[1/6] Running preflight checks...");
     let sys = SystemInfo::detect()?;
     sys.validate()?;
+    tracing::info!(
+        "  OS: {} {}, Arch: {}",
+        sys.os,
+        sys.kernel_version,
+        sys.arch
+    );
+    tracing::info!("  Hostname: {}", sys.hostname);
 
-    // Step 2: GPU detection and host prep
+    // ------------------------------------------------------------------
+    // Step 2: GPU detection
+    // ------------------------------------------------------------------
+    let mut gpus = Vec::new();
+    let mut containerd_snippet: Option<String> = None;
+
     if !skip_gpu {
-        tracing::info!("Detecting GPU configuration...");
-        // GPU detection will be implemented in gpu module
+        tracing::info!("[2/6] Detecting GPU configuration...");
+
+        gpus = gpu::GpuDetector::detect_all()?;
+
+        if gpus.is_empty() {
+            tracing::info!("  No GPUs detected");
+        } else {
+            for gpu in &gpus {
+                tracing::info!(
+                    "  Detected: {} {} ({} MB)",
+                    gpu.vendor,
+                    gpu.name,
+                    gpu.memory_mb
+                );
+            }
+
+            // If the user forced a vendor, validate
+            if let Some(ref forced) = gpu_vendor {
+                let has_vendor = gpus.iter().any(|g| g.vendor == *forced);
+                if !has_vendor {
+                    tracing::warn!(
+                        "Forced GPU vendor '{forced}' was requested but not detected; \
+                         continuing with detected GPUs"
+                    );
+                }
+            }
+
+            // Run vendor-specific host preparation
+            containerd_snippet =
+                gpu::GpuDetector::prepare_and_get_config(&gpus)?;
+        }
+    } else {
+        tracing::info!("[2/6] Skipping GPU detection (--skip-gpu)");
     }
 
+    // ------------------------------------------------------------------
     // Step 3: Install k3s
-    tracing::info!("Installing k3s...");
-    // k3s installation will be implemented in k3s module
+    // ------------------------------------------------------------------
+    tracing::info!(
+        "[3/6] Installing k3s (disable_traefik={disable_traefik}, offline={offline})..."
+    );
+    k3s::K3s::install(disable_traefik, offline).await?;
+    k3s::K3s::copy_kubeconfig()?;
+    k3s::K3s::wait_for_ready().await?;
 
+    // If NVIDIA GPU: apply containerd runtime config to k3s
+    if let Some(snippet) = &containerd_snippet {
+        let k3s_containerd_dir =
+            Path::new("/var/lib/rancher/k3s/agent/etc/containerd");
+        if k3s_containerd_dir.exists() {
+            let config_tmpl = k3s_containerd_dir.join("config.toml.tmpl");
+            tracing::info!(
+                "  Writing NVIDIA containerd runtime snippet to {}",
+                config_tmpl.display()
+            );
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&config_tmpl)
+                .context("failed to open k3s containerd config template")?;
+            file.write_all(snippet.as_bytes())
+                .context("failed to write containerd runtime snippet")?;
+            tracing::info!(
+                "  NOTE: Restart k3s to apply: sudo systemctl restart k3s"
+            );
+        } else {
+            tracing::warn!(
+                "  k3s containerd directory not found; skipping NVIDIA runtime config"
+            );
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Step 4: Install core operators
-    tracing::info!("Installing core operators...");
-    // Operator installation will be implemented in operators module
+    // ------------------------------------------------------------------
+    tracing::info!("[4/6] Installing core operators...");
+    operators::Operators::install_cert_manager().await?;
+    operators::Operators::install_gpu_operators(&gpus).await?;
+    operators::Operators::install_rbac().await?;
+    operators::Operators::verify_metrics_server().await?;
 
+    // ------------------------------------------------------------------
     // Step 5: Deploy ferrishost-web
-    tracing::info!("Deploying ferrishost-web...");
-    // Web deployment will be implemented in deploy_web module
+    // ------------------------------------------------------------------
+    tracing::info!("[5/6] Deploying ferrishost-web...");
+    let ingress_host = format!("{}.homelab.local", sys.hostname);
+    let deployer = deploy_web::WebDeployer::new(&ingress_host);
+    deployer.deploy().await?;
+    let web_url = format!("https://{}", ingress_host);
 
+    // ------------------------------------------------------------------
     // Step 6: Hand off
-    tracing::info!("Setup complete!");
+    // ------------------------------------------------------------------
+    tracing::info!("[6/6] Setup complete!");
+    tracing::info!("  Web dashboard: {web_url}");
+    if !gpus.is_empty() {
+        tracing::info!("  GPU support: {} GPU(s) configured", gpus.len());
+    }
 
     Ok(())
 }
@@ -183,11 +267,45 @@ async fn status() -> anyhow::Result<()> {
     println!("FerrisHost Status");
     println!("================\n");
 
-    // This will be expanded to show actual status
-    println!("Host info: [To be implemented]");
-    println!("Kubernetes: [To be implemented]");
-    println!("GPU status: [To be implemented]");
-    println!("ferrishost-web: [To be implemented]");
+    // Host info
+    match SystemInfo::detect() {
+        Ok(sys) => {
+            println!(
+                "Host:   {} / {} {} ({})",
+                sys.hostname, sys.os, sys.kernel_version, sys.arch
+            );
+        }
+        Err(e) => {
+            println!("Host:   detection failed — {e}");
+        }
+    }
+
+    // k3s
+    if k3s::K3s::is_installed() {
+        println!("k3s:   installed at /usr/local/bin/k3s");
+    } else {
+        println!("k3s:   not installed");
+    }
+
+    // GPU
+    match gpu::GpuDetector::detect_all() {
+        Ok(gpus) => {
+            if gpus.is_empty() {
+                println!("GPU:   none detected");
+            } else {
+                println!("GPU:   {} detected", gpus.len());
+                for gpu in &gpus {
+                    println!(
+                        "         [{}] {} {} ({} MB)",
+                        gpu.index, gpu.vendor, gpu.name, gpu.memory_mb
+                    );
+                }
+            }
+        }
+        Err(e) => {
+            println!("GPU:   detection error — {e}");
+        }
+    }
 
     Ok(())
 }
@@ -196,8 +314,26 @@ async fn gpu_command(detect_only: bool) -> anyhow::Result<()> {
     println!("GPU Detection");
     println!("=============\n");
 
-    // This will detect GPU info
-    println!("[GPU detection to be implemented]");
+    let gpus = gpu::GpuDetector::detect_all()?;
+
+    if gpus.is_empty() {
+        println!("No GPUs detected.");
+        return Ok(());
+    }
+
+    println!("Detected {} GPU(s):\n", gpus.len());
+    for gpu in &gpus {
+        println!(
+            "  [{}] {} {} ({} MB)",
+            gpu.index, gpu.vendor, gpu.name, gpu.memory_mb
+        );
+    }
+
+    if !detect_only {
+        println!("\nRunning host preparation...");
+        gpu::GpuDetector::prepare_and_get_config(&gpus)?;
+        println!("Host preparation complete.");
+    }
 
     Ok(())
 }

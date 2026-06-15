@@ -1,0 +1,40 @@
+image:
+  repository: ghcr.io/dinosath/ferrishost-web
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: traefik
+  host: ""   # set by CLI during install, e.g. "ferrishost.homelab.local"
+  tls:
+    enabled: false
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Artifactory connection for module catalog
+artifactory:
+  url: ""            # e.g. "https://artifactory.example.com/artifactory"
+  repository: "ferrishost-modules"   # generic repo name containing module manifests
+  anonymous: true    # whether to allow anonymous read access
+
+# RBAC — the web service needs permissions to create Jobs
+serviceAccount:
+  create: true
+  name: ferrishost-web
+
+rbac:
+  create: true

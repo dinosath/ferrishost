@@ -24,7 +24,7 @@ impl NvidiaGpu {
         let stdout = String::from_utf8(output.stdout)?;
         let mut gpus = Vec::new();
 
-        for (index, line) in stdout.lines().enumerate() {
+        for (_index, line) in stdout.lines().enumerate() {
             let parts: Vec<&str> = line.split(',').collect();
             if parts.len() == 2 {
                 let name = parts[0].trim().to_string();
@@ -56,12 +56,42 @@ impl GpuVendor for NvidiaGpu {
 
     fn prepare_host(&self) -> Result<()> {
         // Check if nvidia-container-toolkit is installed
-        let output = Command::new("which").arg("nvidia-ctk").output()?;
+        let output = Command::new("which").arg("nvidia-ctk").output();
 
-        if !output.status.success() {
-            tracing::info!("Installing NVIDIA Container Toolkit...");
-            // Installation steps would go here
-            // This is a placeholder for now
+        match output {
+            Ok(out) if out.status.success() => {
+                tracing::info!("nvidia-container-toolkit found — configuring containerd runtime");
+                let result = Command::new("nvidia-ctk")
+                    .args(["runtime", "configure", "--runtime=containerd"])
+                    .output();
+
+                match result {
+                    Ok(r) if r.status.success() => {
+                        tracing::info!(
+                            "NVIDIA containerd runtime configured (may need containerd restart)"
+                        );
+                    }
+                    Ok(r) => {
+                        let stderr = String::from_utf8_lossy(&r.stderr);
+                        tracing::warn!(
+                            "nvidia-ctk configure failed: {stderr}"
+                        );
+                    }
+                    Err(e) => {
+                        tracing::warn!("failed to run nvidia-ctk: {e}");
+                    }
+                }
+            }
+            _ => {
+                tracing::warn!(
+                    "nvidia-container-toolkit not found. \
+                     GPU workloads will not be able to use NVIDIA GPUs. \
+                     Install it with:\n  \
+                       sudo apt install nvidia-container-toolkit  # Debian/Ubuntu\n  \
+                       sudo yum install nvidia-container-toolkit  # RHEL/Fedora\n  \
+                     Then run: sudo nvidia-ctk runtime configure --runtime=containerd"
+                );
+            }
         }
 
         Ok(())

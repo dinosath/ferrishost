@@ -1,0 +1,21 @@
+{
+  "name": "ferrishost-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "solid-js": "^1.9",
+    "@solid-ui/core": "latest",
+    "@solidjs/router": "^0.14"
+  },
+  "devDependencies": {
+    "vite": "^6",
+    "vite-plugin-solid": "^2",
+    "typescript": "^5"
+  }
+}
